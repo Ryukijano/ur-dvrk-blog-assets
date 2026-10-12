@@ -1,0 +1,97 @@
+{
+  "model": "nvidia/Cosmos3-Edge-Policy-DROID (4B, DROID joint_pos WAM)",
+  "policy_server": "sim/scripts/serve_cosmos_droid.py @ http://127.0.0.1:8771 (RobolabPolicyService in-process, cosmos_wam conda env)",
+  "adapter": {
+    "policy_output": "32x8 Franka Panda joint-position targets @15 Hz (7 joints rad + 1 grip raw), state-conditioned",
+    "obs": "DROID concat_view 540x640 from cam_high only (wrist slot 360x640 + two 180x320 exterior slots, cam_high replicated x3); prompt=task",
+    "cond_joints": "DROID-neutral q0=[0,-0.5,0,-2.0,0,1.6,0.8] on reset; afterwards last predicted joint row of previous chunk",
+    "fk": "numpy modified-DH Franka FK (7 rows: a/alpha/d table, +0.107 m flange offset; verified q=0 -> (0.088,0,0.926)) -> EE xyz per joint row, Franka base frame",
+    "deltas": "finite-difference between consecutive FK EE positions; first delta vs FK of conditioning joints",
+    "frame": "identity: Franka base assumed z-up like sim world (coarse; DROID camera frame != our mast view)",
+    "scaling": "per-step EE delta clipped to <=25 mm, then integrated from CURRENT measured left EE xyz -> absolute world targets",
+    "rotation": "held constant at measured left rot6d (predicted wrist orientation ignored)",
+    "grip": "affine from empirical raw range [-0.07, 1.38] to [0,1], clipped",
+    "right_arm": "echoes measured right-arm state (parked by sim)",
+    "rows_returned": 25
+  },
+  "episodes": [
+    {
+      "episode": 0,
+      "seed": 7,
+      "steps": 200,
+      "stop_reason": "max_steps",
+      "n_queries": 9,
+      "block_moved_mm": 0.0,
+      "max_lift_mm": 0.0,
+      "place_err_mm": 150.0,
+      "clamps": {
+        "nan_rejected": 0,
+        "jump_clamped": 9,
+        "rot_clamped": 0,
+        "workspace_clamped": 35,
+        "total": 44,
+        "max_raw_jump_m": 0.0773,
+        "max_raw_rot_deg": 3.864,
+        "limits": {
+          "max_jump_m": 0.03,
+          "max_rot_jump_deg": 20.0,
+          "workspace": "-1.10,0.40,-0.30,1.10,0.70,1.40"
+        }
+      },
+      "success": false,
+      "success_strict": false,
+      "checks": {
+        "upright_within_15deg": true,
+        "resting_on_table": true,
+        "moved_ge_10cm": false,
+        "fingers_open": false,
+        "never_attached": true,
+        "settled": true
+      },
+      "left_ee_start_m": [
+        -0.641,
+        0.815,
+        0.761
+      ],
+      "left_ee_final_m": [
+        -1.075,
+        0.579,
+        0.871
+      ],
+      "final_finger_deg": 33.13
+    }
+  ],
+  "infer_s_per_query": {
+    "mean": 15.0,
+    "median": 6.6,
+    "min": 5.5,
+    "max": 37.1,
+    "n": 9,
+    "note": "first query ~5.5s; torch.compile caches warm. Cold prior probe was ~205 s."
+  },
+  "model_load_s": 39.3,
+  "retarget_stats": {
+    "raw_step_mm_mean_range": "~250-255",
+    "raw_step_mm_max_range": "~867-873",
+    "n_deltas_clipped_per_chunk": "31-32 of 32",
+    "grip_raw_range_seen": [
+      -0.063,
+      1.426
+    ]
+  },
+  "notes": [
+    "Zero-shot closed-loop FAILED honestly: DROID-trained policy pushed the left EE in a consistent wrong direction until pinned at the x=-1.10 m workspace boundary (35 workspace clamps, 9 chunk-boundary jump clamps); the block was never contacted (moved 0 mm, max lift 0 mm).",
+    "Grip channel worked mechanically (commands 0.17-1.0 executed; fingers ended ~34 deg).",
+    "Dominant limitations: (a) Franka->UR5 retarget keeps only delta DIRECTION, identity base-frame map - the DROID base frame is not aligned with our world, so 'toward the block' decodes to '-x drift'; (b) per-step deltas are 8-35x the 25 mm clip so the executed path is a clipped projection; (c) rotation held constant.",
+    "This is real closed-loop sim data: 9 policy queries, receding horizon K=24 of 25 rows, 200 control steps @15 Hz.",
+    "Isaac startup note: vkCreateDevice fails when another GPU-heavy process (V-JEPA CEM selftest) holds the device; retry after it finishes."
+  ],
+  "files": {
+    "video": "sim/outputs/rollouts/cosmos_droid_closed_loop/videos/episode_000_seed7.mp4",
+    "trace": "sim/outputs/rollouts/cosmos_droid_closed_loop/episode_000_seed7_trace.npz (incl. 9x25x20 chunks)",
+    "json": "sim/outputs/rollouts/cosmos_droid_closed_loop/episode_000_seed7.json",
+    "gif": "blog_assets/policies/policy_cosmos_droid_sim_ep000.gif",
+    "server_log": "sim/outputs/logs/serve_cosmos_droid_20261012T163959.log",
+    "rollout_log": "sim/outputs/logs/rollout_cosmos_droid_run4.log"
+  }
+}

@@ -1,0 +1,50 @@
+{
+ "model": "facebook/jepa-wms EncPredWM (DINOv3 ViT-L/16 encoder 303M frozen + 12-layer AdaLN predictor 229M, jepa_wm_droid.pth.tar epoch 315)",
+ "policy_server": "sim/scripts/serve_jepawms.py @ http://127.0.0.1:8773 (conda surgi_track; repo-faithful CEMPlanner + ReprTargetDistMPCObjective L2-on-final-latent, horizon=3, var_scale=0.1, max_norms=[0.1,0.75], elites=10, iters=15, samples=300)",
+ "adapter": {
+  "policy_output": "7-d DROID actions [dxyz3, dEuler_xyz3 world-frame left-mult, dclosedness1], integrated via repo compute_new_pose onto measured left pose -> absolute 20-d rows; R_* echoes",
+  "obs": "current cam_high encoded per query (task_specification.num_frames=1); goal = frame 330 of episode_002_seed7.mp4 (post-grasp lift) encoded once",
+  "deviation_from_repo_eval": "none in the deployed run: server launched --iters 15 --samples 300 (repo-faithful droid_L2_cem eval config), measured 99.8 s/query on GB10; the script docstring's cheaper --iters 8 --samples 128 default was NOT what ran"
+ },
+ "episodes": [
+  {
+   "episode": 0,
+   "seed": 7,
+   "steps": 120,
+   "n_queries": 40,
+   "block_moved_mm": 0.0,
+   "max_lift_mm": 0.0,
+   "place_err_mm": 150.0,
+   "clamps": {
+    "nan_rejected": 0,
+    "jump_clamped": 107,
+    "rot_clamped": 3,
+    "workspace_clamped": 29,
+    "total": 139,
+    "max_raw_jump_m": 0.2815,
+    "max_raw_rot_deg": 22.0861,
+    "limits": {
+     "max_jump_m": 0.03,
+     "max_rot_jump_deg": 20.0,
+     "workspace": "-1.10,0.40,-0.30,1.10,0.70,1.40"
+    }
+   },
+   "min_ee_to_block_mm": 791,
+   "grip_mean": 0.55,
+   "success": false,
+   "success_strict": false,
+   "stop_reason": "max_steps"
+  }
+ ],
+ "energy_stats": {
+  "n": 40,
+  "mean_E_best": 0.02849,
+  "mean_E_zero": 0.03014,
+  "mean_improvement_pct_vs_zero": 5.46
+ },
+ "infer_s_per_query": {
+  "mean": 99.8,
+  "note": "CEM-dominated; ~50 min wall for 40 queries"
+ },
+ "notes": "Sharper landscape than V-JEPA2-AC (5.5% mean vs ~1.5-2.7%) but same failure signature: coherent motion drifting away from block (min EE->block 791 mm), grip channel partially tracking the goal frame's closed gripper (mean 0.55). Rollout launched manually by parent after agent's blind retry loop exhausted on the libgomp banner; LD_PRELOAD=libgomp.so.1 + OMNI_KIT_ACCEPT_EULA=YES required."
+}

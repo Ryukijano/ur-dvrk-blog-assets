@@ -1,0 +1,53 @@
+{
+  "candidates": {
+    "zero (static)": {
+      "E_goal_t280": 0.4092889428138733,
+      "E_goal_t330": 0.42378705739974976
+    },
+    "descend -10mm/st": {
+      "E_goal_t280": 0.4089929461479187,
+      "E_goal_t330": 0.4241129457950592
+    },
+    "descend+close": {
+      "E_goal_t280": 0.4092012345790863,
+      "E_goal_t330": 0.42440012097358704
+    },
+    "close only +0.2/st": {
+      "E_goal_t280": 0.40953126549720764,
+      "E_goal_t330": 0.4238978326320648
+    },
+    "ascend +10mm/st": {
+      "E_goal_t280": 0.40960174798965454,
+      "E_goal_t330": 0.4231826364994049
+    },
+    "descend+lift tail": {
+      "E_goal_t280": 0.4092060625553131,
+      "E_goal_t330": 0.42442643642425537
+    },
+    "GT action chunk": {
+      "E_goal_t280": 0.40873995423316956,
+      "E_goal_t330": 0.42347458004951477
+    },
+    "random": {
+      "E_goal_t280": 0.44027432799339294,
+      "E_goal_t330": 0.44832152128219604
+    },
+    "away -y 20mm/st": {
+      "E_goal_t280": 0.4094344973564148,
+      "E_goal_t330": 0.42257773876190186
+    }
+  },
+  "identity_floors": {
+    "real_t260_vs_t280": 0.36001959443092346,
+    "real_t260_vs_t330": 0.43134474754333496,
+    "real_t280_vs_t280": 0.0,
+    "real_t280_vs_t330": 0.4277057647705078,
+    "real_t330_vs_t280": 0.4277057647705078,
+    "real_t330_vs_t330": 0.0,
+    "real_t340_vs_t280": 0.4341001510620117,
+    "real_t340_vs_t330": 0.34526193141937256,
+    "real_t380_vs_t280": 0.5099809765815735,
+    "real_t380_vs_t330": 0.5172277688980103
+  },
+  "note": "identity floor = L1 between encoded REAL frames and goal latent; predicted-rollout energies should be compared against this"
+}

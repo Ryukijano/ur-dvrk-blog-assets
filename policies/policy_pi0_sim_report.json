@@ -1,0 +1,87 @@
+{
+  "model": "lerobot/pi0",
+  "checkpoint": "hf hub lerobot/pi0 snapshot e4ed526af508e58f6008b29e9e48f1098278fdb5 (model.safetensors 14.01 GB fp32; PaliGemma-3B VLM + gemma-300m flow-matching action expert; loaded via PI0Policy.from_pretrained with a programmatically rebuilt PI0Config because the saved config.json uses deprecated draccus keys; all 777 tensors strict-loaded)",
+  "server": {
+    "script": "sim/scripts/serve_pi0.py",
+    "port": 8770,
+    "venv": "/home/aimsgroupuol/AIMSgeneral/venv-smolvla (lerobot 0.6.1)",
+    "load_s": 344.3,
+    "policy_input": {
+      "observation.images.camera0": "cam_high",
+      "observation.images.camera1": "cam_left_wrist",
+      "observation.images.camera2": "cam_right_wrist",
+      "observation.state": "zeros(6) -- pi0's 6-d proprio space is an ALOHA/SO-100-class joint vector that cannot express our 20-d EE pose; zeros match the validated video probe and keep the identity normalizer in-distribution. Consequence: the policy is proprioceptively blind.",
+      "task": "request task string, tokenized by the saved preprocessor (paligemma-3b-pt-224, max_length 48)"
+    }
+  },
+  "adapter_spec": {
+    "policy_output": "predict_action_chunk -> [1,50,6] normalized actions (no dataset stats ship -> STATE/ACTION normalization is identity; outputs in normalized space)",
+    "dxyz": "dims 0:3 treated as per-step Cartesian velocity deltas x gain; cumulatively integrated onto the CURRENT measured left-EE xyz from `state` (receding horizon: each query re-anchors); dims 3,4 ignored (wrist joints, no EE analog)",
+    "gain": "auto-calibrated once on the FIRST real /act chunk (first 25 rows): gain = 6.5mm / median(|dxyz_raw|), clamped to [0.02, 1.0]. Measured: median|dxyz_raw|=0.0405 -> gain=0.1607 -> median commanded step 6.5 mm (task suggested ~0.2, target band 5-8 mm)",
+    "gripper": "dim 5 -> g = clip((a5 - lo)/(hi - lo), 0, 1), affine lo/hi calibrated with the gain as p5/p95 of the first real chunk (min span 0.02). Measured: [0.0202, 0.0402]",
+    "rotation": "left rot6d held at the current measured value for the whole chunk",
+    "right_arm": "rows echo measured state[10:20] verbatim (sim parks the right arm anyway)",
+    "rows_returned": 25,
+    "note": "cross-embodiment adapter: pi0's joint-space output is reinterpreted as EE velocity -- no claim of semantic fidelity"
+  },
+  "episodes": [
+    {
+      "episode": 0,
+      "seed": 7,
+      "steps": 400,
+      "n_queries": 25,
+      "block_moved_mm": 0.0,
+      "max_lift_mm": 0.0,
+      "place_err_mm": 150.0,
+      "final_tilt_deg": 0.0,
+      "clamps": {"nan_rejected": 0, "jump_clamped": 36, "rot_clamped": 0, "workspace_clamped": 104, "total": 140, "max_raw_jump_m": 0.1289},
+      "ee_travel_m": 3.80,
+      "ee_range_mm_xyz": [492, 1061, 708],
+      "min_ee_to_block_mm": 695,
+      "grip_mean": 0.27,
+      "final_finger_deg": 47.0,
+      "success": false,
+      "success_strict": false,
+      "stop_reason": "max_steps",
+      "video": "sim/outputs/rollouts/pi0_closed_loop/videos/episode_000_seed7.mp4",
+      "trace": "sim/outputs/rollouts/pi0_closed_loop/episode_000_seed7_trace.npz"
+    },
+    {
+      "episode": 1,
+      "seed": 123,
+      "steps": 400,
+      "n_queries": 25,
+      "block_moved_mm": 0.0,
+      "max_lift_mm": 0.0,
+      "place_err_mm": 150.0,
+      "final_tilt_deg": 0.0,
+      "clamps": {"nan_rejected": 0, "jump_clamped": 105, "rot_clamped": 0, "workspace_clamped": 71, "total": 176, "max_raw_jump_m": 0.2001},
+      "ee_travel_m": 4.98,
+      "ee_range_mm_xyz": [586, 722, 647],
+      "min_ee_to_block_mm": 628,
+      "grip_mean": 0.21,
+      "final_finger_deg": 0.0,
+      "success": false,
+      "success_strict": false,
+      "stop_reason": "max_steps",
+      "video": "sim/outputs/rollouts/pi0_closed_loop/videos/episode_001_seed123.mp4",
+      "trace": "sim/outputs/rollouts/pi0_closed_loop/episode_001_seed123_trace.npz"
+    }
+  ],
+  "infer_ms_per_query": {
+    "n": 50,
+    "mean_ms": 671,
+    "median_ms": 606,
+    "min_ms": 599,
+    "max_ms": 1859,
+    "note": "server-side /act time on GB10 fp32 incl. jpeg decode + pre/post-processing (sim-side latency adds ~5 ms jpeg encode + transport; ep0 sim-side mean 660 ms, ep1 698 ms). Prior video probe measured 2550 ms cold."
+  },
+  "success_rate": "0/2",
+  "notes": [
+    "Honest zero-shot cross-embodiment result: the left arm wandered aggressively through the workspace (EE range up to 1.06 m in y, path length 3.8-5.0 m per episode), repeatedly commanded targets below/inside the table or outside the box (104+71 workspace clamps) and made 36+105 jump-limit hits; it never came closer than ~63-70 cm to the block and never touched it (block moved 0 mm, max lift 0 mm).",
+    "gripper channel switched between open/closed across chunks (grip_raw range -1.5..+1.0 normalized) but never in a useful grasp sequence; ep0 ended fully closed, ep1 fully open.",
+    "Failure modes expected: (a) pi0 is trained on ALOHA/SO-100 joint trajectories, not EE pose chunks -- dims 0:3 are joints we reinterpret as Cartesian deltas; (b) proprioception is zeros(6), so the policy cannot see where the arm actually is; (c) single forward pass per query, no history -- the model has no temporal context of its own flailing; (d) camera semantics differ (our mast/wrist cams vs ALOHA rig).",
+    "Same class of result as the smolvla_base flail precedent: the closed loop, contract, safety clamps and adapter all worked correctly; the zero-shot policy simply has no transferable skill for this cell.",
+    "OOM note: first server attempt died at model .to(cuda) while a sibling vjepa job was ramping GPU memory; retried after ~30 GB freed. Server left running on 8770."
+  ]
+}

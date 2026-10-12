@@ -1,0 +1,116 @@
+{
+  "policy": "lerobot/pi0",
+  "backend": "lerobot-torch (PI0Policy)",
+  "status": "ran",
+  "observation": {
+    "video": "/home/aimsgroupuol/AIMSgeneral/UR_dVRK/sim/outputs/rollouts/groot_blog_fish/videos/episode_002_seed7.mp4",
+    "frame_shape_hwc": [
+      480,
+      640,
+      3
+    ],
+    "cameras": "3 distinct frames reused as camera0/1/2"
+  },
+  "config": {
+    "input_features": {
+      "observation.state": {
+        "type": "STATE",
+        "shape": [
+          6
+        ]
+      },
+      "observation.images.camera0": {
+        "type": "VISUAL",
+        "shape": [
+          3,
+          480,
+          640
+        ]
+      },
+      "observation.images.camera1": {
+        "type": "VISUAL",
+        "shape": [
+          3,
+          480,
+          640
+        ]
+      },
+      "observation.images.camera2": {
+        "type": "VISUAL",
+        "shape": [
+          3,
+          480,
+          640
+        ]
+      }
+    },
+    "output_features": {
+      "action": {
+        "type": "ACTION",
+        "shape": [
+          6
+        ]
+      }
+    },
+    "chunk_size": 50,
+    "n_action_steps": 50,
+    "max_action_dim": 32,
+    "image_resolution": [
+      224,
+      224
+    ],
+    "dtype": "float32",
+    "num_inference_steps": 10,
+    "tokenizer_max_length": 48
+  },
+  "load_s": 408.9,
+  "device": "cuda:0",
+  "infer_s": 2.55,
+  "select_action_shape": [
+    1,
+    6
+  ],
+  "select_action_values": [
+    -0.0171,
+    -0.02909,
+    -0.0231,
+    0.03267,
+    -0.16132,
+    0.00501
+  ],
+  "finite": true,
+  "chunk_shape_normalized": [
+    1,
+    50,
+    6
+  ],
+  "chunk_finite": true,
+  "chunk_stats": {
+    "min": -0.0426,
+    "max": 0.0733,
+    "mean": 0.0054,
+    "std": 0.0347
+  },
+  "total_s": 421.1,
+  "action_space_spec": {
+    "repo_config_action_dim": 6,
+    "note": "lerobot/pi0 HF port: PaliGemma-3B VLM + gemma-300m flow-matching action expert; emits 50-step chunk of 6-d actions (SO-100/ALOHA-class joint space). NOTE: upstream Physical Intelligence pi0 is typically 14-d dual-arm EE deltas; this lerobot port config is 6-d single-arm. NOT our 20-d UR/dVRK layout.",
+    "chunk": "50 actions per inference (n_action_steps=50), flow-matching 10 denoise steps",
+    "max_action_dim_padded": 32
+  },
+  "weights": {
+    "repo": "lerobot/pi0",
+    "file": "model.safetensors",
+    "size_gb": 14.01,
+    "framework": "torch port of openpi (JAX not needed)",
+    "loaded_keys": "all 777 tensors, strict load OK"
+  },
+  "caveats": [
+    "repo ships no dataset normalization stats -> STATE/ACTION normalization is identity; returned actions are in normalized space",
+    "saved config.json rejected by lerobot 0.6.1 draccus parser (deprecated keys) -> built PI0Config manually with identical values",
+    "saved policy_preprocessor.json pins device=cpu -> moved tensors to cuda manually",
+    "images: 3 real frames reused as camera0/1/2 (640x480 native matches config)",
+    "first-call inference 2.55s on GB10 (fp32); model load ~409s one-time"
+  ],
+  "verdict": "ran"
+}
